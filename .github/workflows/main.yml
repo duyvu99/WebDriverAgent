@@ -1,0 +1,41 @@
+name: Build WDA IPA
+
+on:
+  workflow_dispatch: # Cho phép bạn nhấn nút chạy thủ công
+
+jobs:
+  build:
+    runs-on: macos-latest # GitHub sẽ mở một máy Mac ảo mới nhất
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Build WebDriverAgent
+        run: |
+          mkdir build
+          xcodebuild -project WebDriverAgent.xcodeproj \
+                     -scheme WebDriverAgentRunner \
+                     -destination 'generic/platform=iOS' \
+                     -configuration Release \
+                     -derivedDataPath build \
+                     CODE_SIGN_IDENTITY="" \
+                     CODE_SIGNING_REQUIRED=NO \
+                     CODE_SIGNING_ALLOWED=NO
+
+      - name: Create IPA
+        run: |
+          mkdir -p Payload
+          cp -r build/Build/Products/Release-iphoneos/WebDriverAgentRunner-Runner.app Payload/
+          zip -r WebDriverAgent.ipa Payload
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: WebDriverAgent-IPA
+          path: WebDriverAgent.ipa
